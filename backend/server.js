@@ -5,6 +5,8 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 
+require('dotenv').config();
+
 const app = express();
 const PORT = 8007;
 
@@ -28,8 +30,8 @@ app.use(cors({
 // Serve uploaded files statically
 app.use('/uploads', express.static('uploads'));
 
-const mongoURI = 'mongodb+srv://parthmanocha2901:nM1f3T9HLQItVAqQ@cluster0.ecvzxuo.mongodb.net/assignment?retryWrites=true&w=majority&appName=Cluster0';
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true });
+
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 
 app.get('/', (req, res) => {
   res.json({ message: 'Dev Here! Started' });

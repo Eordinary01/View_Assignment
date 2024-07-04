@@ -1,24 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
-import { motion, AnimatePresence, useViewportScroll, useTransform } from "framer-motion";
-import { FiUpload, FiDownload, FiFilter, FiX, FiEye, FiBook, FiCalendar, FiUser, FiChevronDown, FiArrowUp, FiMoon, FiSun } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
+import { FiUpload, FiDownload, FiFilter, FiX, FiEye, FiBook, FiCalendar, FiUser, FiChevronDown, FiArrowUp } from "react-icons/fi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
-
-
-const colors = {
-  primary: "#6C5CE7",
-  secondary: "#FDA7DF",
-  accent: "#FF9FF3",
-  background: "#F0F3FF",
-  text: "#2C3E50",
-  card: "#FFFFFF",
-  darkBackground: "#2C3A47",
-  darkText: "#FFFFFF",
-  darkCard: "#3D3D3D",
-};
 
 const Home = () => {
   const [formData, setFormData] = useState({ course: "", branch: "", year: "", subject: "", file: null });
@@ -31,8 +18,6 @@ const Home = () => {
   const [sortOrder, setSortOrder] = useState("desc");
   const [filterOptions, setFilterOptions] = useState({ courses: [], branches: [], years: [], subjects: [] });
   const [isLoading, setIsLoading] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
-  const [animateCards, setAnimateCards] = useState(false);
   const API_URL = process.env.REACT_APP_API_URL;
   const navigate = useNavigate();
 
@@ -85,19 +70,6 @@ const Home = () => {
     }
     setIsLoading(false);
   };
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    document.body.classList.toggle("dark");
-  };
-
-  
-
- 
-
-  const { scrollYProgress } = useViewportScroll();
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.2]);
-
-  
 
   const updateFilterOptions = () => {
     const options = {
@@ -163,9 +135,6 @@ const Home = () => {
         ? a[sortBy].localeCompare(b[sortBy])
         : b[sortBy].localeCompare(a[sortBy]);
     });
-    useEffect(() => {
-      setAnimateCards(true);
-    }, [filteredAndSortedAssignments]);
 
     const handleDownload = async (assignment) => {
       if (await checkTokenExpiration()) {
@@ -220,18 +189,12 @@ const Home = () => {
   };
 
   const FilterDropdown = ({ name, options }) => (
-    <motion.div
-      className="relative"
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
+    <div className="relative">
       <select
         name={name}
         value={filters[name]}
         onChange={handleFilterChange}
-        className={`w-full p-3 rounded-lg appearance-none focus:ring-2 focus:ring-${colors.primary} focus:border-transparent transition duration-300 ${
-          darkMode ? "bg-gray-700 text-white" : "bg-white text-gray-800"
-        }`}
+        className="w-full p-3 border rounded-lg appearance-none bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
       >
         <option value="">All {name}s</option>
         {options.map((option) => (
@@ -241,56 +204,39 @@ const Home = () => {
         ))}
       </select>
       <FiChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-    </motion.div>
+    </div>
   );
+
   return (
-    <div className={`min-h-screen ${darkMode ? "bg-gray-900" : "bg-gray-100"}`}>
-    <Navbar onLogout={handleLogout} />
-    <div className="container mx-auto p-4">
-      <ToastContainer />
+    <div className="bg-gray-100 min-h-screen">
+      <Navbar onLogout={handleLogout} />
+      <div className="container mx-auto p-4">
+        <ToastContainer />
 
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-8 flex justify-between items-center"
-      >
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowForm(!showForm)}
-          className={`px-8 py-4 rounded-full shadow-lg transition duration-300 transform focus:outline-none focus:ring-2 focus:ring-opacity-50 ${
-            darkMode
-              ? "bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500"
-              : "bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-500"
-          }`}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8 flex justify-between items-center"
         >
-          {showForm ? "Hide Upload Form" : "Upload New Assignment"}
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={toggleDarkMode}
-          className={`p-2 rounded-full shadow-lg transition duration-300 ${
-            darkMode ? "bg-yellow-400" : "bg-gray-800 text-white"
-          }`}
-        >
-          {darkMode ? <FiSun size={24} /> : <FiMoon size={24} />}
-        </motion.button>
-      </motion.div>
-
-      <AnimatePresence>
-        {showForm && (
-          <motion.form
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className={`p-8 rounded-lg shadow-xl mb-8 ${
-              darkMode ? "bg-gray-800" : "bg-white"
-            }`}
-            onSubmit={handleUpload}
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-blue-500 text-white px-8 py-4 rounded-full shadow-lg hover:bg-blue-600 transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
           >
+            {showForm ? "Hide Upload Form" : "Upload New Assignment"}
+          </button>
+        </motion.div>
+
+        <AnimatePresence>
+          {showForm && (
+            <motion.form
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white p-8 rounded-lg shadow-xl mb-8"
+              onSubmit={handleUpload}
+            >
               <h2 className="text-2xl font-bold mb-6 text-blue-600">Upload Assignment</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 {["course", "branch", "year", "subject"].map((field) => (
@@ -402,19 +348,17 @@ const Home = () => {
         <AnimatePresence>
           {selectedAssignment && (
             <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          >
-            <motion.div
-              initial={{ y: -50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 50, opacity: 0 }}
-              className={`p-8 rounded-lg shadow-2xl w-full max-w-lg relative ${
-                darkMode ? "bg-gray-800" : "bg-white"
-              }`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
             >
+              <motion.div
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 50, opacity: 0 }}
+                className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-lg relative"
+              >
                 <button
                   onClick={() => setSelectedAssignment(null)}
                   className="absolute top-4 right-4 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition duration-300"
@@ -455,13 +399,13 @@ const Home = () => {
           )}
         </AnimatePresence>
 
-        <ScrollToTopButton  darkMode={darkMode} />
+        <ScrollToTopButton />
       </div>
     </div>
   );
 };
 
-const ScrollToTopButton = ({darkMode}) => {
+const ScrollToTopButton = () => {
   const [isVisible, setIsVisible] = useState(false);
 
   const toggleVisibility = () => {
@@ -492,11 +436,7 @@ const ScrollToTopButton = ({darkMode}) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={scrollToTop}
-          className={`fixed bottom-8 right-8 p-3 rounded-full shadow-lg transition duration-300 ${
-            darkMode
-              ? "bg-purple-600 text-white hover:bg-purple-700"
-              : "bg-blue-500 text-white hover:bg-blue-600"
-          }`}
+          className="fixed bottom-8 right-8 bg-blue-500 text-white p-3 rounded-full shadow-lg hover:bg-blue-600 transition duration-300"
         >
           <FiArrowUp />
         </motion.button>
