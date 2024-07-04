@@ -10,6 +10,8 @@ const Signup = () => {
   });
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
+  const API_URL = process.env.REACT_APP_API_URL;
+  
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -23,7 +25,7 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://127.0.0.1:8007/auth/signup', formData);
+      const response = await axios.post(`${API_URL}/auth/signup`, formData);
       setMessage(response.data.message || 'Signup successful! Redirecting to login...');
       setIsError(false);
       setTimeout(() => navigate('/login'), 2000);

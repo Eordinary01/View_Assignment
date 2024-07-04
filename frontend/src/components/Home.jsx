@@ -18,6 +18,7 @@ const Home = () => {
   const [sortOrder, setSortOrder] = useState("desc");
   const [filterOptions, setFilterOptions] = useState({ courses: [], branches: [], years: [], subjects: [] });
   const [isLoading, setIsLoading] = useState(true);
+  const API_URL = process.env.REACT_APP_API_URL;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,7 +38,7 @@ const Home = () => {
     }
 
     try {
-      await axios.get("http://127.0.0.1:8007/auth/check-token", {
+      await axios.get(`${API_URL}/auth/check-token`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       return true;
@@ -58,7 +59,7 @@ const Home = () => {
     if (await checkTokenExpiration()) {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://127.0.0.1:8007/assignments/assignments", {
+        const res = await axios.get(`${API_URL}/assignments/assignments`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setAssignments(res.data);
@@ -101,7 +102,7 @@ const Home = () => {
     if (await checkTokenExpiration()) {
       try {
         const token = localStorage.getItem("token");
-        await axios.post("http://127.0.0.1:8007/assignments/upload", formDataToSend, {
+        await axios.post(`${API_URL}/assignments/upload`, formDataToSend, {
           headers: { Authorization: `Bearer ${token}` },
         });
         fetchAssignments();
@@ -135,41 +136,46 @@ const Home = () => {
         : b[sortBy].localeCompare(a[sortBy]);
     });
 
-  const handleDownload = async (assignment) => {
-    if (await checkTokenExpiration()) {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          `http://127.0.0.1:8007/assignments/uploads/${assignment.fileUrl.split("/").pop()}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            responseType: "blob",
+    const handleDownload = async (assignment) => {
+      if (await checkTokenExpiration()) {
+        try {
+          const token = localStorage.getItem("token");
+          const response = await axios.get(
+            `${API_URL}/assignments/uploads/${assignment.fileUrl.split("/").pop()}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+              responseType: "blob",
+            }
+          );
+    
+          const contentType = response.headers["content-type"];
+          const contentDisposition = response.headers["content-disposition"];
+          let filename = `${assignment.subject}_assignment`;
+          
+          if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+            if (filenameMatch && filenameMatch.length === 2) {
+              filename = filenameMatch[1];
+            }
+          } else {
+            // If no content-disposition, use the original filename with extension
+            filename = assignment.fileUrl.split("/").pop();
           }
-        );
-
-        const contentDisposition = response.headers["content-disposition"];
-        let filename = `${assignment.subject}_assignment`;
-        if (contentDisposition) {
-          const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
-          if (filenameMatch && filenameMatch.length === 2) {
-            filename = filenameMatch[1];
-          }
+    
+          const url = window.URL.createObjectURL(new Blob([response.data], { type: contentType }));
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("download", filename);
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.URL.revokeObjectURL(url);
+        } catch (err) {
+          toast.error("Failed to download file");
+          console.error("Download error:", err);
         }
-
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", filename);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
-      } catch (err) {
-        toast.error("Failed to download file");
-        console.error("Download error:", err);
       }
-    }
-  };
+    };
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("token");

@@ -7,6 +7,7 @@ const Login = () => {
     email: '',
     password: ''
   });
+  const API_URL = process.env.REACT_APP_API_URL;
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -20,7 +21,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://127.0.0.1:8007/auth/login', formData);
+      const res = await axios.post(`${API_URL}/auth/login`, formData);
       localStorage.setItem('token', res.data.token);
       
       // Add console log to check if token is stored

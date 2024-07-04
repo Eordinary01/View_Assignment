@@ -3,7 +3,7 @@ const User = require('../models/User');
 
 const jwtSecret = 'eyJhbGciOiJIUzI1NiJ9.ew0KICAic3ViIjogIjEyMzQ1Njc4OTAiLA0KICAibmFtZSI6ICJBbmlzaCBOYXRoIiwNCiAgImlhdCI6IDE1MTYyMzkwMjINCn0.CMEx-YapnKFDaNDYw8nW9oEAWx8UXFdtEMQWspCMgyE';
 
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const authHeader = req.header('Authorization');
   if (!authHeader) {
     return res.status(401).json({ error: 'No token provided' });
@@ -15,12 +15,18 @@ const verifyToken = (req, res, next) => {
   }
 
   try {
-    const verified = jwt.verify(token, jwtSecret);
-    req.user = verified;
+    const decoded = jwt.verify(token, jwtSecret);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    req.user = user;
     next();
   } catch (err) {
     res.status(400).json({ error: 'Invalid token' });
   }
 };
 
-module.exports = { verifyToken };
+module.exports = { verifyToken };   
