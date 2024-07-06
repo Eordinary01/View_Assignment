@@ -7,6 +7,7 @@ const assignmentSchema = new mongoose.Schema({
   subject: { type: String, required: true },
   fileUrl: { type: String, required: true },
   uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  college: { type: String, required: false },
 }, {
   timestamps: true // This will add createdAt and updatedAt fields
 });

@@ -38,7 +38,7 @@ const Login = () => {
         console.error('Response data:', err.response.data);
         console.error('Response status:', err.response.status);
       }
-      setMessage('Login failed. Please try again.');
+      setMessage('Login failed. Please verify credentials');
     } finally {
       setIsLoading(false);
     }

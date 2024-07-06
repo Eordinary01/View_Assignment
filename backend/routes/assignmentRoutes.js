@@ -54,6 +54,7 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
       subject,
       fileUrl: `/uploads/${req.file.filename}`,
       uploadedBy: req.user.id,
+      college: req.user.college
     });
     await assignment.save();
     res.status(201).json({ message: 'Assignment uploaded successfully' });
@@ -66,7 +67,14 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
 // Get all assignments route
 router.get('/assignments', verifyToken, async (req, res) => {
   try {
-    const assignments = await Assignment.find().populate('uploadedBy', 'email');
+    let assignments;
+    if (req.user.role === 'admin') {
+      // If user is admin, fetch all assignments
+      assignments = await Assignment.find().populate('uploadedBy', 'email college');
+    } else {
+      // If user is not admin, fetch only assignments from their college
+      assignments = await Assignment.find({ college: req.user.college }).populate('uploadedBy', 'email college');
+    }
     res.json(assignments);
   } catch (err) {
     console.error('Fetch assignments error:', err);
@@ -104,6 +112,81 @@ router.get('/uploads/:filename', verifyToken, (req, res) => {
     } else {
       res.status(500).json({ error: 'Internal server error' });
     }
+  }
+});
+// Delete assignment route (admin only)
+router.delete('/assignments/:id', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin only.' });
+    }
+
+    const assignment = await Assignment.findById(req.params.id);
+    if (!assignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    // Delete the file from the server
+    const filePath = path.join(__dirname, '..', assignment.fileUrl);
+    try {
+      await fs.unlink(filePath);
+    } catch (unlinkError) {
+      console.error('Error deleting file:', unlinkError);
+      // If the file doesn't exist, we'll just log it and continue
+    }
+
+    // Delete the assignment from the database
+    await Assignment.findByIdAndDelete(req.params.id);
+
+    res.json({ message: 'Assignment deleted successfully' });
+  } catch (err) {
+    console.error('Delete assignment error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+// Update assignment route (admin only)
+router.put('/assignments/:id', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin only.' });
+    }
+
+    const { course, branch, year, subject,college } = req.body;
+    const assignment = await Assignment.findById(req.params.id);
+
+    if (!assignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    assignment.course = course;
+    assignment.branch = branch;
+    assignment.year = year;
+    assignment.subject = subject;
+    assignment.college = college;
+
+    await assignment.save();
+
+    res.json({ message: 'Assignment updated successfully', assignment });
+  } catch (err) {
+    console.error('Update assignment error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+router.get('/assignments/:id', verifyToken, async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.id).populate('uploadedBy', 'email college');
+    if (!assignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+    
+    if (req.user.role !== 'admin' && assignment.college !== req.user.college) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    res.json(assignment);
+  } catch (err) {
+    console.error('Fetch assignment error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

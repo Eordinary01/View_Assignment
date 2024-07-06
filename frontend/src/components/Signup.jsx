@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiUser, FiMail, FiLock, FiArrowRight } from 'react-icons/fi';
+import { FiUser, FiMail, FiLock, FiHome, FiArrowRight } from 'react-icons/fi';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: ''
+    password: '',
+    college: ''
   });
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
@@ -56,6 +57,7 @@ const Signup = () => {
     { name: 'name', type: 'text', icon: FiUser },
     { name: 'email', type: 'email', icon: FiMail },
     { name: 'password', type: 'password', icon: FiLock },
+    { name: 'college', type: 'text', icon: FiHome }
   ];
 
   return (

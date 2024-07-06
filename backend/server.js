@@ -2,22 +2,21 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const multer = require('multer');
 const path = require('path');
 
 require('dotenv').config();
 
 const app = express();
-const PORT = 8007;
+const PORT = process.env.PORT || 8007;
 
 app.use(bodyParser.json());
 
 const allowedOrigins = ['http://localhost:3000', 'https://viewassignmentfrontend.vercel.app'];
 
 app.use(cors({
-  origin: function(origin, callback){
+  origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1){
+    if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
@@ -27,9 +26,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Serve uploaded files statically
 app.use('/uploads', express.static('uploads'));
-
 
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 

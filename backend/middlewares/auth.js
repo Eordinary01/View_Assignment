@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-
-const jwtSecret = 'eyJhbGciOiJIUzI1NiJ9.ew0KICAic3ViIjogIjEyMzQ1Njc4OTAiLA0KICAibmFtZSI6ICJBbmlzaCBOYXRoIiwNCiAgImlhdCI6IDE1MTYyMzkwMjINCn0.CMEx-YapnKFDaNDYw8nW9oEAWx8UXFdtEMQWspCMgyE';
+require('dotenv').config();
 
 const verifyToken = async (req, res, next) => {
   const authHeader = req.header('Authorization');
@@ -15,18 +14,25 @@ const verifyToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, jwtSecret);
-    const user = await User.findById(decoded.userId);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.userId).select('-password'); // Fetch user without password field
     
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    req.user = user;
+    req.user = {
+      id: user._id,
+      email: user.email,
+      college: user.college,
+      role: user.role
+    };
     next();
   } catch (err) {
+    console.error("Token verification error:", err);
     res.status(400).json({ error: 'Invalid token' });
   }
 };
 
-module.exports = { verifyToken };   
+module.exports = { verifyToken };
