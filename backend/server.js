@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 8007;
 
 app.use(bodyParser.json());
 
-const allowedOrigins = ['http://localhost:3000', 'https://viewassignmentfrontend.vercel.app'];
+const allowedOrigins = ['http://localhost:3000', 'https://viewassignmentfrontend.vercel.app','http://127.0.0.1:8081/','http://localhost:8081/'];
 
 app.use(cors({
   origin: function (origin, callback) {
