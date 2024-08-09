@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import { jwtDecode } from "jwt-decode";
 import { motion, AnimatePresence, useViewportScroll, useTransform } from "framer-motion";
-import { FiUpload, FiDownload, FiFilter, FiX, FiEye, FiBook, FiCalendar, FiUser, FiChevronDown, FiArrowUp, FiMoon, FiSun, FiTrash2, FiEdit } from "react-icons/fi";
+import { FiUpload, FiDownload, FiFilter, FiX, FiEye, FiBook, FiCalendar, FiUser, FiChevronDown, FiArrowUp, FiMoon, FiSun, FiTrash2, FiEdit, FiSearch } from "react-icons/fi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
+import { useInView } from "react-intersection-observer";
 
-const colors = {  
+const colors = {
   primary: "#6C5CE7",
   secondary: "#FDA7DF",
   accent: "#FF9FF3",
@@ -36,7 +37,11 @@ const Home = () => {
   const [userInfo, setUserInfo] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [assignmentsPerPage] = useState(9);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
   const API_URL = process.env.REACT_APP_API_URL;
   const navigate = useNavigate();
 
@@ -46,7 +51,7 @@ const Home = () => {
 
   useEffect(() => {
     if (userInfo) {
-      setIsAdmin(userInfo.role ==='admin');
+      setIsAdmin(userInfo.role === 'admin');
       fetchAssignments();
     }
   }, [userInfo]);
@@ -174,27 +179,39 @@ const Home = () => {
     }
   };
 
-  const filteredAndSortedAssignments = assignments
-    .filter((assignment) =>
-      (!filters.course || assignment.course === filters.course) &&
-      (!filters.branch || assignment.branch === filters.branch) &&
-      (!filters.year || assignment.year === filters.year) &&
-      (!filters.subject || assignment.subject === filters.subject)
-    )
-    .sort((a, b) => {
-      if (sortBy === "date") {
+  const filteredAndSortedAssignments = useMemo(() => {
+    return assignments
+      .filter((assignment) =>
+        (!filters.course || assignment.course === filters.course) &&
+        (!filters.branch || assignment.branch === filters.branch) &&
+        (!filters.year || assignment.year === filters.year) &&
+        (!filters.subject || assignment.subject === filters.subject) &&
+        (assignment.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         assignment.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         assignment.branch.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+      .sort((a, b) => {
+        if (sortBy === "date") {
+          return sortOrder === "asc"
+            ? new Date(a.createdAt) - new Date(b.createdAt)
+            : new Date(b.createdAt) - new Date(a.createdAt);
+        }
         return sortOrder === "asc"
-          ? new Date(a.createdAt) - new Date(b.createdAt)
-          : new Date(b.createdAt) - new Date(a.createdAt);
-      }
-      return sortOrder === "asc"
-        ? a[sortBy].localeCompare(b[sortBy])
-        : b[sortBy].localeCompare(a[sortBy]);
-    });
+          ? a[sortBy].localeCompare(b[sortBy])
+          : b[sortBy].localeCompare(a[sortBy]);
+      });
+  }, [assignments, filters, searchTerm, sortBy, sortOrder]);
 
-  useEffect(() => {
-    setAnimateCards(true);
-  }, [filteredAndSortedAssignments]);
+  const indexOfLastAssignment = currentPage * assignmentsPerPage;
+  const indexOfFirstAssignment = indexOfLastAssignment - assignmentsPerPage;
+  const currentAssignments = filteredAndSortedAssignments.slice(indexOfFirstAssignment, indexOfLastAssignment);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
 
   const handleDownload = async (assignment) => {
     if (await checkTokenExpiration()) {
@@ -239,8 +256,7 @@ const Home = () => {
   const handleDelete = async (assignmentId) => {
     if(!isAdmin){
       toast.error("You don't have permission to delete assignments.");
-    return;
-
+      return;
     }
     if (await checkTokenExpiration()) {
       try {
@@ -260,9 +276,8 @@ const Home = () => {
 
   const handleEdit = async (e) => {
     if(!isAdmin){
-      toast.error("You don't have permission to delete assignments.");
-    return;
-
+      toast.error("You don't have permission to edit assignments.");
+      return;
     }
     e.preventDefault();
     if (await checkTokenExpiration()) {
@@ -297,6 +312,16 @@ const Home = () => {
     setSortOrder((prev) => prev === "asc" ? "desc" : "asc");
   };
 
+  const { ref, inView } = useInView({
+    threshold: 0.1,
+  });
+
+  useEffect(() => {
+    if (inView) {
+      setAnimateCards(true);
+    }
+  }, [inView]);
+
   const FilterDropdown = ({ name, options }) => (
     <motion.div
       className="relative"
@@ -321,7 +346,6 @@ const Home = () => {
       <FiChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
     </motion.div>
   );
-  
 
   return (
     <div className={`min-h-screen ${darkMode ? "bg-gray-900" : "bg-gray-100"}`}>
@@ -414,12 +438,42 @@ const Home = () => {
           )}
         </AnimatePresence>
 
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search assignments..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              className={`w-full p-4 pl-12 rounded-full border-2 transition-all duration-300 ${
+                isSearchFocused
+                  ? "border-blue-500 shadow-lg"
+                  : "border-gray-300"
+              } ${darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"}`}
+            />
+            <FiSearch
+              className={`absolute left-4 top-1/2 transform -translate-y-1/2 transition-all duration-300 ${
+                isSearchFocused ? "text-blue-500" : "text-gray-400"
+              }`}
+              size={20}
+            />
+          </div>
+        </motion.div>
+
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <FilterDropdown name="course" options={filterOptions.courses} />
           <FilterDropdown name="branch" options={filterOptions.branches} />
           <FilterDropdown name="year" options={filterOptions.years} />
           <FilterDropdown name="subject" options={filterOptions.subjects} />
         </div>
+
         <div className="mb-6 flex justify-end space-x-4">
           <button
             onClick={() => toggleSort("subject")}
@@ -436,49 +490,34 @@ const Home = () => {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-          </div>
+          <LoadingSpinner />
         ) : (
           <motion.div
+            ref={ref}
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{ opacity: inView ? 1 : 0 }}
             transition={{ delay: 0.2 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
-            {filteredAndSortedAssignments.map((assignment) => (
-              <motion.div
+            {currentAssignments.map((assignment) => (
+              <AssignmentCard
                 key={assignment._id}
-                whileHover={{ scale: 1.03, boxShadow: "0 10px 20px rgba(0,0,0,0.1)" }}
-                whileTap={{ scale: 0.98 }}
-                className="bg-white p-6 rounded-lg shadow-md transition duration-300"
-              >
-                <h3 className="font-bold text-xl mb-3 text-blue-600">{assignment.subject}</h3>
-                <h3 className="font-bold text-xl mb-3 text-blue-600">{assignment.college}</h3>
-                <p className="text-sm text-gray-600 mb-4">{`${assignment.course} - ${assignment.branch} - ${assignment.year} Year`}</p>
-                <p className="text-xs text-gray-500 mb-4">{new Date(assignment.createdAt).toLocaleDateString()}</p>
-                <div className="flex justify-between">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleDownload(assignment)}
-                    className="inline-flex items-center text-green-500 hover:text-green-600 transition duration-300"
-                  >
-                    <FiDownload className="mr-1" /> Download
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setSelectedAssignment(assignment)}
-                    className="inline-flex items-center text-blue-500 hover:text-blue-600 transition duration-300"
-                  >
-                    <FiEye className="mr-1" /> View Details
-                  </motion.button>
-                </div>
-              </motion.div>
+                assignment={assignment}
+                handleDownload={handleDownload}
+                setSelectedAssignment={setSelectedAssignment}
+                darkMode={darkMode}
+              />
             ))}
           </motion.div>
         )}
+
+        <Pagination
+          assignmentsPerPage={assignmentsPerPage}
+          totalAssignments={filteredAndSortedAssignments.length}
+          paginate={paginate}
+          currentPage={currentPage}
+          darkMode={darkMode}
+        />
 
         <AnimatePresence>
           {selectedAssignment && (
@@ -501,15 +540,13 @@ const Home = () => {
                     setSelectedAssignment(null);
                     setIsEditing(false);
                   }}
-                  className="absolute top-4 right-4 text-gray-800 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition duration-300"
+                  className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition duration-300"
                 >
                   <FiX size={24} />
                 </button>
                 {isEditing ? (
                   <form onSubmit={handleEdit} className="space-y-4">
-                    <h2 className="text-3xl font-bold mb-6 text-blue-600 dark:text-blue-400">
-                      Edit Assignment
-                    </h2>
+                    <h2 className="text-3xl font-bold mb-6 text-blue-600">Edit Assignment</h2>
                     {["course", "branch", "year", "subject"].map((field) => (
                       <div key={field} className="relative">
                         <input
@@ -543,7 +580,7 @@ const Home = () => {
                   </form>
                 ) : (
                   <>
-                   <h2 className={`text-3xl font-bold mb-6 ${darkMode ? "text-blue-400" : "text-blue-600"}`}>
+                    <h2 className={`text-3xl font-bold mb-6 ${darkMode ? "text-blue-400" : "text-blue-600"}`}>
                       {selectedAssignment.subject}
                     </h2>
                     <div className={`mb-6 space-y-3 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
@@ -569,29 +606,26 @@ const Home = () => {
                       >
                         <FiDownload className="mr-2" /> Download Assignment
                       </motion.button>
-                      {
-                        isAdmin && (
-                          <>
-
+                      {isAdmin && (
+                        <>
                           <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setIsEditing(true)}
-                          className="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition duration-300 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setIsEditing(true)}
+                            className="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition duration-300 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
                           >
-                        <FiEdit className="mr-2" /> Edit
-                      </motion.button>
-                      <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleDelete(selectedAssignment._id)}
-                      className="bg-red-500 text-white p-4 rounded-lg hover:bg-red-600 transition duration-300 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
-                      >
-                        <FiTrash2 className="mr-2" /> Delete
-                      </motion.button>
+                            <FiEdit className="mr-2" /> Edit
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleDelete(selectedAssignment._id)}
+                            className="bg-red-500 text-white p-4 rounded-lg hover:bg-red-600 transition duration-300 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                          >
+                            <FiTrash2 className="mr-2" /> Delete
+                          </motion.button>
                         </>
-                      )
-                    }
+                      )}
                     </div>
                   </>
                 )}
@@ -605,6 +639,79 @@ const Home = () => {
     </div>
   );
 };
+
+const AssignmentCard = ({ assignment, handleDownload, setSelectedAssignment, darkMode }) => (
+  <motion.div
+    whileHover={{ scale: 1.03, boxShadow: "0 10px 20px rgba(0,0,0,0.1)" }}
+    whileTap={{ scale: 0.98 }}
+    className={`p-6 rounded-lg shadow-md transition duration-300 ${
+      darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
+    }`}
+  >
+    <h3 className="font-bold text-xl mb-3 text-blue-600">{assignment.subject}</h3>
+    <h3 className="font-bold text-xl mb-3 text-blue-600">{assignment.college}</h3>
+    <p className="text-sm text-gray-600 mb-4">{`${assignment.course} - ${assignment.branch} - ${assignment.year} Year`}</p>
+    <p className="text-xs text-gray-500 mb-4">{new Date(assignment.createdAt).toLocaleDateString()}</p>
+    <div className="flex justify-between">
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => handleDownload(assignment)}
+        className="inline-flex items-center text-green-500 hover:text-green-600 transition duration-300"
+      >
+        <FiDownload className="mr-1" /> Download
+      </motion.button>
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setSelectedAssignment(assignment)}
+        className="inline-flex items-center text-blue-500 hover:text-blue-600 transition duration-300"
+      >
+        <FiEye className="mr-1" /> View Details
+      </motion.button>
+    </div>
+  </motion.div>
+);
+
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center h-64">
+    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+  </div>
+);
+
+const Pagination = ({ assignmentsPerPage, totalAssignments, paginate, currentPage, darkMode }) => {
+  const pageNumbers = [];
+
+  for (let i = 1; i <= Math.ceil(totalAssignments / assignmentsPerPage); i++) {
+    pageNumbers.push(i);
+  }
+
+  return (
+    <nav className="mt-8">
+      <ul className="flex justify-center space-x-2">
+        {pageNumbers.map((number) => (
+          <li key={number}>
+            <button
+              onClick={() => paginate(number)}
+              className={`px-4 py-2 rounded-md transition duration-300 ${
+                currentPage === number
+                  ? darkMode
+                    ? "bg-blue-600 text-white"
+                    : "bg-blue-500 text-white"
+                  : darkMode
+                  ? "bg-gray-700 text-white hover:bg-blue-600"
+                  : "bg-gray-200 text-gray-700 hover:bg-blue-500 hover:text-white"
+              }`}
+            >
+              {number}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+};
+
 
 const ScrollToTopButton = ({ darkMode }) => {
   const [isVisible, setIsVisible] = useState(false);
