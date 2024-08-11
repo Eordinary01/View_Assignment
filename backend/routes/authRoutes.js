@@ -46,7 +46,7 @@ router.post("/login", async (req, res) => {
     }
     // Change 'id' to 'userId' to be consistent with the middleware
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "7d",
     });
     res.json({
       token,
@@ -106,6 +106,40 @@ router.get("/user-info/:userId", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Error fetching user information" });
   }
 });
+
+
+router.get("/auth/user-info", verifyToken, async (req, res) => {
+  const token = req.header("Authorization")?.replace("Bearer ", "");
+
+  if (!token) {
+    return res.status(401).json({ error: "No token provided" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("Decoded token:", decoded);
+    const userId = decoded.userId;
+    console.log("Searching for user with ID:", userId);
+
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+      console.error("User not found in database for ID:", userId);
+      return res.status(404).json({ error: "User not found" });
+    }
+    console.log("User found:", user);
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      college: user.college,
+      role: user.role
+    });
+  } catch (err) {
+    console.error("Error fetching user information:", err);
+    res.status(500).json({ error: "Error fetching user information" });
+  }
+});
+
 
 
 
