@@ -90,7 +90,7 @@ router.get('/assignments', verifyToken, async (req, res) => {
 // File download route
 router.get('/uploads/:filename', verifyToken, (req, res) => {
   try {
-    const filePath = path.join(__dirname, '../uploads', req.params.filename);
+    const filePath = path.join(__dirname, '..', 'uploads', req.params.filename);
     
     // Check if file exists synchronously
     fs.accessSync(filePath, fs.constants.F_OK);
