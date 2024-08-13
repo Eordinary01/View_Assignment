@@ -5,6 +5,7 @@ const User = require("../models/User");
 const { verifyToken } = require('../middlewares/auth');
 
 require("dotenv").config();
+
 router.post("/signup", async (req, res) => {
   try {
     const { name, email, password, college } = req.body;
@@ -21,6 +22,8 @@ router.post("/signup", async (req, res) => {
     // Create a token after successful signup
     const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
     
+    console.log("Signup Token:", token);
+
     res.status(201).json({
       message: "User created successfully",
       token,
@@ -33,6 +36,7 @@ router.post("/signup", async (req, res) => {
       },
     });
   } catch (err) {
+    console.error("Signup Error:", err);
     res.status(400).json({ error: err.message });
   }
 });
@@ -45,9 +49,10 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Invalid email or password" });
     }
     // Change 'id' to 'userId' to be consistent with the middleware
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+    console.log("Login Token:", token);
+
     res.json({
       token,
       user: {
@@ -59,6 +64,7 @@ router.post("/login", async (req, res) => {
       },
     });
   } catch (err) {
+    console.error("Login Error:", err);
     res.status(400).json({ error: err.message });
   }
 });
@@ -66,34 +72,43 @@ router.post("/login", async (req, res) => {
 router.get("/check-token", (req, res) => {
   const token = req.header("Authorization")?.replace("Bearer ", "");
 
+  console.log("Check Token:", token);
+
   if (!token) {
     return res.status(401).json({ error: "No token provided" });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Change 'id' to 'userId' to be consistent with the login route
+    console.log("Decoded Check Token:", decoded);
+    
     res.json({ valid: true, userId: decoded.userId });
   } catch (err) {
+    console.error("Invalid or Expired Token Error:", err);
     res.status(401).json({ error: "Invalid or expired token" });
   }
 });
+
 router.get("/user-info/:userId", verifyToken, async (req, res) => {
   const token = req.header("Authorization")?.replace("Bearer ", "");
-  // console.log(token,"Token:")
+
+  console.log("User Info Token:", token);
 
   if (!token) {
     return res.status(401).json({ error: "No token provided" });
   }
+
   try {
     const userId = req.params.userId;
-    // console.log("User ID from URL:", userId);
+    console.log("User ID from URL:", userId);
     
     const user = await User.findById(userId).select('-password');
     if (!user) {
       console.error("User not found in database");
       return res.status(404).json({ error: "User not found" });
     }
+    console.log("User Found:", user);
+
     res.json({
       id: user._id,
       name: user.name,
@@ -107,9 +122,10 @@ router.get("/user-info/:userId", verifyToken, async (req, res) => {
   }
 });
 
-
 router.get("/auth/user-info", verifyToken, async (req, res) => {
   const token = req.header("Authorization")?.replace("Bearer ", "");
+
+  console.log("Auth User Info Token:", token);
 
   if (!token) {
     return res.status(401).json({ error: "No token provided" });
@@ -117,7 +133,7 @@ router.get("/auth/user-info", verifyToken, async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded token:", decoded);
+    console.log("Decoded Auth Token:", decoded);
     const userId = decoded.userId;
     console.log("Searching for user with ID:", userId);
 
@@ -127,6 +143,7 @@ router.get("/auth/user-info", verifyToken, async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
     console.log("User found:", user);
+
     res.json({
       id: user._id,
       name: user.name,
@@ -139,8 +156,5 @@ router.get("/auth/user-info", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Error fetching user information" });
   }
 });
-
-
-
 
 module.exports = router;
