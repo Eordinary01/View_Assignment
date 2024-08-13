@@ -9,12 +9,12 @@ require("dotenv").config();
 router.post("/signup", async (req, res) => {
   try {
     const { name, email, password, college } = req.body;
-    const isAdmin = email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD;
+    const isAdmin = email.toUpperCase() === process.env.ADMIN_EMAIL.toUpperCase() && password === process.env.ADMIN_PASSWORD;
     const newUser = new User({
-      name,
-      email,
+      name: name.toUpperCase(),
+      email: email.toUpperCase(),
       password,
-      college,
+      college: college.toUpperCase(),
       role: isAdmin ? "admin" : "student",
     });
     await newUser.save();
@@ -44,7 +44,7 @@ router.post("/signup", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toUpperCase() });
     if (!user || !(await user.comparePassword(password))) {
       return res.status(400).json({ error: "Invalid email or password" });
     }
@@ -111,10 +111,10 @@ router.get("/user-info/:userId", verifyToken, async (req, res) => {
 
     res.json({
       id: user._id,
-      name: user.name,
-      email: user.email,
-      college: user.college,
-      role: user.role
+      name: user.name.toUpperCase(),
+      email: user.email.toUpperCase(),
+      college: user.college.toUpperCase(),
+      role: user.role.toUpperCase()
     });
   } catch (err) {
     console.error("Error fetching user information:", err);
@@ -146,10 +146,10 @@ router.get("/auth/user-info", verifyToken, async (req, res) => {
 
     res.json({
       id: user._id,
-      name: user.name,
-      email: user.email,
-      college: user.college,
-      role: user.role
+      name: user.name.toUpperCase(),
+      email: user.email.toUpperCase(),
+      college: user.college.toUpperCase(),
+      role: user.role.toUpperCase()
     });
   } catch (err) {
     console.error("Error fetching user information:", err);

@@ -48,13 +48,13 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
     }
     const { course, branch, year, subject } = req.body;
     const assignment = new Assignment({
-      course,
-      branch,
-      year,
-      subject,
+      course: course.toUpperCase(),
+      branch: branch.toUpperCase(),
+      year: year.toUpperCase(),
+      subject: subject.toUpperCase(),
       fileUrl: `/uploads/${req.file.filename}`,
       uploadedBy: req.user.id,
-      college: req.user.college
+      college: req.user.college.toUpperCase()
     });
     await assignment.save();
     res.status(201).json({ message: 'Assignment uploaded successfully' });
@@ -158,11 +158,11 @@ router.put('/assignments/:id', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'Assignment not found' });
     }
 
-    assignment.course = course;
-    assignment.branch = branch;
-    assignment.year = year;
-    assignment.subject = subject;
-    assignment.college = college;
+    assignment.course = course.toUpperCase();
+    assignment.branch = branch.toUpperCase();
+    assignment.year = year.toUpperCase();
+    assignment.subject = subject.toUpperCase();
+    assignment.college = college.toUpperCase();
 
     await assignment.save();
 
