@@ -117,7 +117,7 @@ router.get('/uploads/:filename', verifyToken, (req, res) => {
 // Delete assignment route (admin only)
 router.delete('/assignments/:id', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'ADMIN') {
       return res.status(403).json({ error: 'Access denied. Admin only.' });
     }
 
@@ -147,7 +147,7 @@ router.delete('/assignments/:id', verifyToken, async (req, res) => {
 // Update assignment route (admin only)
 router.put('/assignments/:id', verifyToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'ADMIN') {
       return res.status(403).json({ error: 'Access denied. Admin only.' });
     }
 
