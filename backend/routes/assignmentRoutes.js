@@ -66,9 +66,10 @@ router.post('/upload', verifyToken, upload.single('file'), async (req, res) => {
 
 // Get all assignments route
 router.get('/assignments', verifyToken, async (req, res) => {
+  const userRole = req.user.role.toUpperCase();
   try {
     let assignments;
-    if (req.user.role === 'ADMIN' && req.user.role === 'admin') {
+    if (userRole === 'ADMIN') {
       // If user is admin, fetch all assignments
       assignments = await Assignment.find().populate('uploadedBy', 'email college');
     } else {
