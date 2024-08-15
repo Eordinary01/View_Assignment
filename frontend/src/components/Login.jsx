@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const Login = () => {
@@ -28,7 +28,7 @@ const Login = () => {
       const res = await axios.post(`${API_URL}/auth/login`, formData);
       localStorage.setItem('token', res.data.token);
       console.log('Token stored in localStorage:', localStorage.getItem('token'));
-      setMessage('Redirecting to home page...');
+      setMessage('Login successful. Redirecting...');
       setTimeout(() => {
         navigate('/');
       }, 2000);
@@ -95,6 +95,9 @@ const Login = () => {
             {message}
           </motion.p>
         )}
+        <p className="mt-4 text-center text-sm">
+          Don't have an account? <Link to="/signup" className="text-blue-600 hover:underline">Sign up</Link>
+        </p>
       </motion.div>
     </div>
   );

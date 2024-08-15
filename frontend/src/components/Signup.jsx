@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiUser, FiMail, FiLock, FiHome, FiArrowRight } from 'react-icons/fi';
 
@@ -114,8 +114,13 @@ const Signup = () => {
               }`}
             >
               {message}
+
+              
             </motion.div>
           )}
+          <p className="mt-4 text-center text-sm">
+          Already have an account? <Link to="/login" className="text-blue-600 hover:underline">Login </Link>
+        </p>
         </AnimatePresence>
       </motion.div>
     </div>

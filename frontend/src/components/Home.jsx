@@ -51,7 +51,7 @@ const Home = () => {
 
   useEffect(() => {
     if (userInfo) {
-      setIsAdmin(userInfo.role === 'ADMIN');
+      setIsAdmin(userInfo.role === 'ADMIN' &&'admin');
       fetchAssignments();
     }
   }, [userInfo]);
