@@ -8,6 +8,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
 import { useInView } from "react-intersection-observer";
+import { debounce } from 'lodash';
 
 const colors = {
   primary: "#6C5CE7",
@@ -76,6 +77,15 @@ const Home = () => {
       });
       setUserInfo(response.data);
     } catch (err) {
+      console.error("Error fetching user info:", err);
+      if (err.response) {
+        console.error("Response data:", err.response.data);
+        console.error("Response status:", err.response.status);
+      } else if (err.request) {
+        console.error("No response received:", err.request);
+      } else {
+        console.error("Error setting up request:", err.message);
+      }
       toast.error("Failed to fetch user information");
       navigate("/login");
     }
@@ -95,6 +105,7 @@ const Home = () => {
       });
       return true;
     } catch (err) {
+      console.error("Token check error:", err);
       if (err.response && err.response.status === 401) {
         toast.error("Your session has expired. Please log in again.");
         localStorage.removeItem("token");
@@ -116,8 +127,16 @@ const Home = () => {
         });
         setAssignments(res.data);
       } catch (err) {
+        console.error("Error fetching assignments:", err);
+        if (err.response) {
+          console.error("Response data:", err.response.data);
+          console.error("Response status:", err.response.status);
+        } else if (err.request) {
+          console.error("No response received:", err.request);
+        } else {
+          console.error("Error setting up request:", err.message);
+        }
         toast.error("Failed to fetch assignments");
-        console.error(err);
       }
     }
     setIsLoading(false);
@@ -162,17 +181,34 @@ const Home = () => {
 
     if (await checkTokenExpiration()) {
       try {
+        console.log("Uploading to URL:", `${API_URL}/assignments/upload`);
+        console.log("Form data:", Object.fromEntries(formDataToSend));
+        
         const token = localStorage.getItem("token");
-        await axios.post(`${API_URL}/assignments/upload`, formDataToSend, {
-          headers: { Authorization: `Bearer ${token}` },
+        const response = await axios.post(`${API_URL}/assignments/upload`, formDataToSend, {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          },
         });
+        
+        console.log("Upload response:", response.data);
+        
         fetchAssignments();
         setShowForm(false);
         setFormData({ course: "", branch: "", year: "", subject: "", file: null });
         toast.success("Assignment uploaded successfully");
       } catch (err) {
+        console.error("Upload error:", err);
+        if (err.response) {
+          console.error("Response data:", err.response.data);
+          console.error("Response status:", err.response.status);
+        } else if (err.request) {
+          console.error("No response received:", err.request);
+        } else {
+          console.error("Error setting up request:", err.message);
+        }
         toast.error("Failed to upload assignment");
-        console.error(err);
       } finally {
         setIsUploading(false);
       }
